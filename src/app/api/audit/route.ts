@@ -186,9 +186,16 @@ async function runPageSpeedInsights(url: string): Promise<LighthouseResult> {
 			opportunities,
 			diagnostics,
 		};
-	} catch (error) {
-		console.error("PageSpeed Insights error:", error);
-		throw new Error(`Failed to run PageSpeed Insights: ${error.message}`);
+	} catch (error: unknown) {
+		if (error instanceof Error) {
+			console.error("PageSpeed Insights error:", error.message);
+			throw new Error(`Failed to run PageSpeed Insights: ${error.message}`);
+		} else {
+			console.error("Unknown error:", error);
+			throw new Error(
+				"Failed to run PageSpeed Insights due to an unknown error.",
+			);
+		}
 	}
 }
 
