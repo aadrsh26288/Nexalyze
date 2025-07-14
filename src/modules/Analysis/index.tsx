@@ -93,7 +93,7 @@ const Analysis: React.FC = () => {
 		}
 	};
 
-	const formatSuggestions = (suggestions: string): (JSX.Element | null)[] => {
+	const formatSuggestions = (suggestions: string): (any | null)[] => {
 		// Clean up the suggestions text
 		const cleanText = suggestions
 			.replace(/#{1,6}\s*/g, "") // Remove markdown headers
