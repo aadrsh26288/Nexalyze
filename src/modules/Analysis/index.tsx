@@ -18,13 +18,43 @@ import {
 	ExternalLink,
 } from "lucide-react";
 
-const Analysis = () => {
-	const [url, setUrl] = useState("");
-	const [loading, setLoading] = useState(false);
-	const [results, setResults] = useState(null);
-	const [error, setError] = useState("");
+// Type definitions
+interface LighthouseScores {
+	performance: number;
+	accessibility: number;
+	bestPractices: number;
+	seo: number;
+}
 
-	const handleSubmit = async () => {
+interface AnalysisResults {
+	url: string;
+	lighthouse: LighthouseScores;
+	suggestions: string;
+}
+
+interface ApiResponse {
+	error?: string;
+	url?: string;
+	lighthouse?: LighthouseScores;
+	suggestions?: string;
+}
+
+interface SectionIconProps {
+	title: string;
+}
+
+interface ScoreCardProps {
+	score: number;
+	label: string;
+}
+
+const Analysis: React.FC = () => {
+	const [url, setUrl] = useState<string>("");
+	const [loading, setLoading] = useState<boolean>(false);
+	const [results, setResults] = useState<AnalysisResults | null>(null);
+	const [error, setError] = useState<string>("");
+
+	const handleSubmit = async (): Promise<void> => {
 		if (!url) return;
 
 		setLoading(true);
@@ -40,13 +70,22 @@ const Analysis = () => {
 				body: JSON.stringify({ url }),
 			});
 
-			const data = await response.json();
+			const data: ApiResponse = await response.json();
 
 			if (!response.ok) {
 				throw new Error(data.error || "Failed to analyze website");
 			}
 
-			setResults(data);
+			// Type guard to ensure we have all required properties
+			if (data.url && data.lighthouse && data.suggestions) {
+				setResults({
+					url: data.url,
+					lighthouse: data.lighthouse,
+					suggestions: data.suggestions,
+				});
+			} else {
+				throw new Error("Invalid response format");
+			}
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "An error occurred");
 		} finally {
@@ -54,7 +93,7 @@ const Analysis = () => {
 		}
 	};
 
-	const formatSuggestions = (suggestions) => {
+	const formatSuggestions = (suggestions: string): (JSX.Element | null)[] => {
 		// Clean up the suggestions text
 		const cleanText = suggestions
 			.replace(/#{1,6}\s*/g, "") // Remove markdown headers
@@ -81,7 +120,7 @@ const Analysis = () => {
 					content = lines;
 				}
 
-				const getSectionIcon = (title) => {
+				const getSectionIcon = (title: string): JSX.Element => {
 					const lowerTitle = title.toLowerCase();
 					if (
 						lowerTitle.includes("performance") ||
@@ -108,12 +147,14 @@ const Analysis = () => {
 					return <Lightbulb className='h-5 w-5 text-indigo-600' />;
 				};
 
-				const renderInlineFormatting = (text) => {
+				const renderInlineFormatting = (
+					text: string,
+				): (string | JSX.Element)[] | string => {
 					// Handle links
 					const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-					const parts = [];
+					const parts: (string | JSX.Element)[] = [];
 					let lastIndex = 0;
-					let match;
+					let match: RegExpExecArray | null;
 
 					while ((match = linkRegex.exec(text)) !== null) {
 						// Add text before the link
@@ -192,23 +233,45 @@ const Analysis = () => {
 			.filter(Boolean);
 	};
 
-	const getScoreColor = (score) => {
+	const getScoreColor = (score: number): string => {
 		if (score >= 90) return "text-green-600";
 		if (score >= 70) return "text-yellow-600";
 		return "text-red-600";
 	};
 
-	const getScoreIcon = (score) => {
+	const getScoreIcon = (score: number): JSX.Element => {
 		if (score >= 90) return <CheckCircle className='h-5 w-5 text-green-600' />;
 		if (score >= 70) return <AlertCircle className='h-5 w-5 text-yellow-600' />;
 		return <XCircle className='h-5 w-5 text-red-600' />;
 	};
 
-	const getScoreBg = (score) => {
+	const getScoreBg = (score: number): string => {
 		if (score >= 90) return "from-green-50 to-emerald-100 border-green-200";
 		if (score >= 70) return "from-yellow-50 to-amber-100 border-yellow-200";
 		return "from-red-50 to-rose-100 border-red-200";
 	};
+
+	const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
+		setUrl(e.target.value);
+	};
+
+	const ScoreCard: React.FC<{ score: number; label: string }> = ({
+		score,
+		label,
+	}) => (
+		<div
+			className={`text-center p-4 bg-gradient-to-br ${getScoreBg(
+				score,
+			)} rounded-lg border`}>
+			<div className='flex items-center justify-center gap-2 mb-2'>
+				{getScoreIcon(score)}
+				<div className={`text-2xl font-bold ${getScoreColor(score)}`}>
+					{score}
+				</div>
+			</div>
+			<div className='text-sm font-medium text-gray-700'>{label}</div>
+		</div>
+	);
 
 	return (
 		<div className='flex flex-col items-center justify-center mt-20 px-4'>
@@ -228,7 +291,7 @@ const Analysis = () => {
 					className='flex-1 max-w-[500px] h-12'
 					placeholder='https://example.com'
 					value={url}
-					onChange={(e) => setUrl(e.target.value)}
+					onChange={handleInputChange}
 					disabled={loading}
 					required
 				/>
@@ -269,78 +332,22 @@ const Analysis = () => {
 						</CardHeader>
 						<CardContent>
 							<div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
-								<div
-									className={`text-center p-4 bg-gradient-to-br ${getScoreBg(
-										Math.round(results.lighthouse.performance * 100),
-									)} rounded-lg border`}>
-									<div className='flex items-center justify-center gap-2 mb-2'>
-										{getScoreIcon(
-											Math.round(results.lighthouse.performance * 100),
-										)}
-										<div
-											className={`text-2xl font-bold ${getScoreColor(
-												Math.round(results.lighthouse.performance * 100),
-											)}`}>
-											{Math.round(results.lighthouse.performance * 100)}
-										</div>
-									</div>
-									<div className='text-sm font-medium text-gray-700'>
-										Performance
-									</div>
-								</div>
-								<div
-									className={`text-center p-4 bg-gradient-to-br ${getScoreBg(
-										Math.round(results.lighthouse.accessibility * 100),
-									)} rounded-lg border`}>
-									<div className='flex items-center justify-center gap-2 mb-2'>
-										{getScoreIcon(
-											Math.round(results.lighthouse.accessibility * 100),
-										)}
-										<div
-											className={`text-2xl font-bold ${getScoreColor(
-												Math.round(results.lighthouse.accessibility * 100),
-											)}`}>
-											{Math.round(results.lighthouse.accessibility * 100)}
-										</div>
-									</div>
-									<div className='text-sm font-medium text-gray-700'>
-										Accessibility
-									</div>
-								</div>
-								<div
-									className={`text-center p-4 bg-gradient-to-br ${getScoreBg(
-										Math.round(results.lighthouse.bestPractices * 100),
-									)} rounded-lg border`}>
-									<div className='flex items-center justify-center gap-2 mb-2'>
-										{getScoreIcon(
-											Math.round(results.lighthouse.bestPractices * 100),
-										)}
-										<div
-											className={`text-2xl font-bold ${getScoreColor(
-												Math.round(results.lighthouse.bestPractices * 100),
-											)}`}>
-											{Math.round(results.lighthouse.bestPractices * 100)}
-										</div>
-									</div>
-									<div className='text-sm font-medium text-gray-700'>
-										Best Practices
-									</div>
-								</div>
-								<div
-									className={`text-center p-4 bg-gradient-to-br ${getScoreBg(
-										Math.round(results.lighthouse.seo * 100),
-									)} rounded-lg border`}>
-									<div className='flex items-center justify-center gap-2 mb-2'>
-										{getScoreIcon(Math.round(results.lighthouse.seo * 100))}
-										<div
-											className={`text-2xl font-bold ${getScoreColor(
-												Math.round(results.lighthouse.seo * 100),
-											)}`}>
-											{Math.round(results.lighthouse.seo * 100)}
-										</div>
-									</div>
-									<div className='text-sm font-medium text-gray-700'>SEO</div>
-								</div>
+								<ScoreCard
+									score={Math.round(results.lighthouse.performance * 100)}
+									label='Performance'
+								/>
+								<ScoreCard
+									score={Math.round(results.lighthouse.accessibility * 100)}
+									label='Accessibility'
+								/>
+								<ScoreCard
+									score={Math.round(results.lighthouse.bestPractices * 100)}
+									label='Best Practices'
+								/>
+								<ScoreCard
+									score={Math.round(results.lighthouse.seo * 100)}
+									label='SEO'
+								/>
 							</div>
 						</CardContent>
 					</Card>
