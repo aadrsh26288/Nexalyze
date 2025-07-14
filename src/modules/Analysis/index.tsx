@@ -120,7 +120,7 @@ const Analysis: React.FC = () => {
 					content = lines;
 				}
 
-				const getSectionIcon = (title: string): JSX.Element => {
+				const getSectionIcon = (title: string): any => {
 					const lowerTitle = title.toLowerCase();
 					if (
 						lowerTitle.includes("performance") ||
@@ -149,10 +149,10 @@ const Analysis: React.FC = () => {
 
 				const renderInlineFormatting = (
 					text: string,
-				): (string | JSX.Element)[] | string => {
+				): (string | any)[] | string => {
 					// Handle links
 					const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-					const parts: (string | JSX.Element)[] = [];
+					const parts: (string | any)[] = [];
 					let lastIndex = 0;
 					let match: RegExpExecArray | null;
 
@@ -239,7 +239,7 @@ const Analysis: React.FC = () => {
 		return "text-red-600";
 	};
 
-	const getScoreIcon = (score: number): JSX.Element => {
+	const getScoreIcon = (score: number): any => {
 		if (score >= 90) return <CheckCircle className='h-5 w-5 text-green-600' />;
 		if (score >= 70) return <AlertCircle className='h-5 w-5 text-yellow-600' />;
 		return <XCircle className='h-5 w-5 text-red-600' />;
